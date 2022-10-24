@@ -1,4 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
+using IdentityModel;
 using Microsoft.IdentityModel.Tokens;
 
 
@@ -18,7 +20,7 @@ var jwksJson = @"
       ""alg"": ""RS256""
     }
   ]
-}   
+}  
 ";
 
 
@@ -35,11 +37,16 @@ var validationParameters = new TokenValidationParameters
 	ValidIssuer = "https://dev.idsrv.webaccountplus.com"  // Your token issuer, can be disabled via ValidateIssuer = false
 };
 
+WritePem(jwk);
+
 if (ValidateToken(token, validationParameters))
 {
 	Console.WriteLine("Token Valid");
 }
-Console.WriteLine("Token Invalid");
+else
+{
+	Console.WriteLine("Token Invalid");
+}
 
 static bool ValidateToken(string token, TokenValidationParameters validationParameters)
 {
@@ -54,4 +61,18 @@ static bool ValidateToken(string token, TokenValidationParameters validationPara
 		Console.WriteLine(e);
 		return false;
 	}
+}
+
+static void WritePem(JsonWebKey jsonWebKey)
+{
+	var rsaProvider = new RSACryptoServiceProvider();
+	rsaProvider.ImportParameters(new RSAParameters
+	{
+		Modulus = Base64Url.Decode(jsonWebKey.N),
+		Exponent = Base64Url.Decode(jsonWebKey.E)
+	});
+
+	Console.WriteLine("-----BEGIN PUBLIC KEY-----");
+	Console.WriteLine(Convert.ToBase64String(rsaProvider.ExportSubjectPublicKeyInfo()));
+	Console.WriteLine("-----END PUBLIC KEY-----");
 }
